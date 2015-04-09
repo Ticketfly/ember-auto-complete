@@ -1,6 +1,253 @@
 import Ember from 'ember';
 import layout from '../templates/components/auto-complete';
 
+const observer = Ember.observer;
+const computed = Ember.computed;
+const map = computed.map;
+
+/**
+  @module AutoCompleteOption
+
+  Provides a simple object proxy with some computed properties for use in the
+  AutoComplete component. The AutoComplete component requires access to it's
+  options in order to set its selection and filter out suggestions - Using
+  another component here would be better semantically would require some fugly
+  hacking to register the components together.
+
+  Possibly consider using CollectionView?
+
+  Notes:
+    - Computed properties are underscored so that they will not conflict with
+      potential objects being passed (`label` and `value` are fairly common
+      property names, the others are underscored for consistency)
+    - `_autoComplete` is a reference to the parent AutoComplete component. This
+      would typically be done with `parentView` if this were a component.
+      Aliasing could be used to clean up the code here, but some of the items
+      are arguably sole properties of the AutoComplete component (`_selected`)
+      whereas others have some right to be here (`optionLabelPath`,
+      `optionValuePath`).
+*/
+const AutoCompleteOption = Ember.ObjectProxy.extend({
+  /**
+   * The resolved label of the option. If the option is an object then the label
+   * is provided by the property at `optionLabelPath`. Otherwise the label is
+   * the option itself. Must resolve to a string.
+   *
+   * @property _label
+   * @private
+   */
+  _label: computed('content', '_autoComplete.optionLabelPath', function() {
+    const content = this.get('content');
+    const optionLabelPath = this.get('_autoComplete.optionLabelPath');
+
+    if (optionLabelPath && content && typeof content === 'object') {
+      return content.get(optionLabelPath);
+    } else {
+      return content;
+    }
+  }),
+
+  /**
+   * The resolved value of the option. If the option is an object then the value
+   * is provided by the property at `optionLabelPath`. Otherwise the value is
+   * the option itself.
+   *
+   * @property _label
+   * @private
+   */
+  _value: computed('content', '_autoComplete.optionValuePath', function() {
+    const content = this.get('content');
+    const optionValuePath = this.get('_autoComplete.optionValuePath');
+
+    if (optionValuePath && content && typeof content === 'object') {
+      return content.get(optionValuePath);
+    } else {
+      return content;
+    }
+  }),
+
+  /**
+   * Label formatted to highlight the matched parts of the option.
+   *
+   * @property _label
+   * @private
+   */
+  _formattedLabel: computed('label', '_autoComplete.regexValue', function() {
+    const label = this.get('_label');
+    const highlightMatches = this.get('_autoComplete.highlightMatches');
+    const regexValue = this.get('_autoComplete.regexValue');
+
+    if (regexValue && highlightMatches) {
+      return label.replace(regexValue, "<b>$&</b>");
+    }
+
+    return label;
+  }),
+
+  /**
+   * Whether or not the option is selected.
+   *
+   * @property _label
+   * @private
+   */
+  _selected: computed('_label', '_autoComplete.value', function() {
+    return this.get('_autoComplete.value') === this.get('_label');
+  })
+});
+
+/**
+  @module AutoComplete
+
+  AutoComplete as a component is similar to a Select. The user types some input,
+  suggestions appear in a dropdown list and can be clicked, and the value of the
+  selected option is selected.
+*/
 export default Ember.Component.extend({
-  layout: layout
+  layout: layout,
+
+  /**
+   * Two-way bound property representing the current value of the search input.
+   *
+   * @property value
+   * @public
+   */
+  value: '',
+
+  /**
+   * Two-way bound property representing the current value of the selection.
+   *
+   * @property selection
+   * @public
+   */
+  selection: null,
+
+  /**
+   * Two-way bound property representing the path to an option's value. This
+   * value is what will be mapped to `selection` when an object is selected.
+   *
+   * @property optionValuePath
+   * @public
+   */
+  optionValuePath: '',
+
+  /**
+   * Two-way bound property representing the path to an option's label. This
+   * value is what will be mapped to `value` when an option is selected.
+   *
+   * @property optionLabelPath
+   * @public
+   */
+  optionLabelPath: '',
+
+  /**
+   * Determines whether or not the content of this AutoComplete is provided
+   * asynchronously. If it is, it is assumed that the user is filtering the list
+   * on their own and no filtering is done by the component.
+   *
+   * @property async
+   * @private
+   */
+  async: false,
+
+  /**
+   * Determines whether or not the matching segment of option labels will be
+   * highlighted.
+   *
+   * @property highlightMatches
+   * @public
+   */
+  highlightMatches: true,
+
+  /**
+   * Internal representation of the option list for the AutoComplete. Wraps
+   * each option in an AutoCompleteOption proxf object which has various
+   * computed properties for determining an objects value, label, etc.
+   *
+   * @property options
+   * @private
+   */
+  options: map('content', function(option) {
+    // Wrap standard JS objects in Ember objects
+    if (Ember.typeOf(option) === 'object' ) {
+      console.log('test');
+      option = Ember.Object.create(option);
+    }
+
+    return AutoCompleteOption.create({
+      _autoComplete: this,
+      content: option
+    });
+  }),
+
+  /**
+   * A regular expression of the current value of the input, used in a few
+   * locations (null if no value is blank)
+   *
+   * @property regexValue
+   * @private
+   */
+  regexValue: computed('value', function() {
+    const value = this.get('value');
+
+    if (value) {
+      return new RegExp(value, 'g');
+    }
+  }),
+
+  /**
+   * The filtered list of options. Filtered by regex comparison of value to
+   * label if non-async, otherwise not filtered.
+   *
+   * @property filteredOptions
+   * @private
+   */
+  filteredOptions: computed('options.@each', 'regexValue', function() {
+    if (this.get('async')) { return this.get('options'); }
+
+    const regexValue = this.get('regexValue');
+
+    return Ember.A(this.get('options').filter(function(option) {
+        return option.get('_label').match(regexValue);
+      })
+    );
+  }),
+
+  /**
+   * Sets the selection property when one of the options is selected. This can
+   * happen either when the user clicks on an option, or when they type the full
+   * label into the input.
+   *
+   * @property setSelection
+   * @private
+   */
+  setSelection: observer('options.@each._selected', function() {
+    const selection = this.get('options').findBy('_selected');
+
+    if (selection) {
+      this.set('selection', selection.get('_value'));
+    } else {
+      this.set('selection', null);
+    }
+  }),
+
+  actions: {
+    /**
+     * Selects a clicked option, sets the component's value and selection to the
+     * option's label and value, respectively.
+     *
+     * @property selectOption
+     * @private
+     */
+    selectOption: function(option) {
+      const selection = option.get('_value');
+      const value = option.get('_label');
+
+      this.set('selection', selection);
+      this.set('value', value);
+
+      if (this.get('onSelect')) {
+        this.sendAction('onSelect', this, selection);
+      }
+    }
+  }
 });

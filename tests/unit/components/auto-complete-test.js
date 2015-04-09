@@ -255,7 +255,7 @@ test('aria attributes', function(assert) {
     { name: 'Paul' },
     { name: 'Ringo' },
     { name: 'Yoko' }
-  ]
+  ];
 
   var component = this.subject({
     value: 'don\'t be afraid',
@@ -267,18 +267,19 @@ test('aria attributes', function(assert) {
 
   var input = this.$('input');
   var list = this.$('.ac-options');
-  var options = this.$('.ac-option');
 
-  equal(input.attr('role'), 'combobox', 'input role');
-  equal(input.attr('aria-autocomplete'), 'both', 'aria-autocomplete');
-  equal(input.attr('aria-owns'), list.attr('id'), 'aria-owns');
-  equal(input.attr('aria-activedescendant'), options.eq(2).attr('id'), 'aria-activedescendant');
+  options = this.$('.ac-option');
 
-  equal(options.eq(0).attr('role'), 'option', 'option role');
+  assert.equal(input.attr('role'), 'combobox', 'input role');
+  assert.equal(input.attr('aria-autocomplete'), 'both', 'aria-autocomplete');
+  assert.equal(input.attr('aria-owns'), list.attr('id'), 'aria-owns');
+  assert.equal(input.attr('aria-activedescendant'), options.eq(2).attr('id'), 'aria-activedescendant');
 
-  equal(list.attr('role'), 'listbox', 'list role');
-  equal(list.attr('aria-expanded'), 'false', 'aria-expanded');
+  assert.equal(options.eq(0).attr('role'), 'option', 'option role');
+
+  assert.equal(list.attr('role'), 'listbox', 'list role');
+  assert.equal(list.attr('aria-expanded'), 'false', 'aria-expanded');
 
   input.focus().trigger('keypress', { keyCode: 40 });
-  equal(list.attr('aria-expanded'), 'true', 'aria-expanded');
+  assert.equal(list.attr('aria-expanded'), 'true', 'aria-expanded');
 });

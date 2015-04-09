@@ -1,1 +1,17 @@
-{{yield}}
+{{input value=value placeholder=placeholder}}
+
+<ul class="ac-options" role="list-box" {{bind-attr aria-expanded=isOpen}}>
+  {{#each filteredOptions as |option index|}}
+    <li {{action "selectOption" option}} {{bind-attr id="option.id"}}>
+      {{#if template}}
+        {{yield option}}
+      {{else}}
+      {{{option._formattedLabel}}}
+      {{/if}}
+    </li>
+  {{else}}
+    <li>
+      <span class="ac-options-placeholder">{{optionsPlaceholder}}</span>
+    </li>
+  {{/each}}
+</ul>
