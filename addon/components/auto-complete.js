@@ -307,9 +307,9 @@ export default Ember.Component.extend({
     const lastOption = this.$('.auto-complete__option:last').first();
 
     if (focusedOption[0] === lastOption[0]) {
-      input.focus();
+      input[0].focus();
     } else if (focusedOption.length) {
-      focusedOption.next().focus();
+      focusedOption.next()[0].focus();
     } else {
       firstOption.focus();
     }

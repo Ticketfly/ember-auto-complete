@@ -73,7 +73,9 @@ test('closes on escape', function(assert) {
     assert.ok(component.get('isOpen'), 'auto-complete list is open');
   });
 
-  keyEvent('input', 'keyDown', 27);
+  andThen(() => {
+    keyEvent('input', 'keyDown', 27);
+  });
 
   andThen(() => {
     assert.ok(!component.get('isOpen'), 'auto-complete list is not open');
@@ -81,41 +83,33 @@ test('closes on escape', function(assert) {
 });
 
 test('test navigation', function(assert) {
-  assert.expect(6);
+  assert.expect(7);
 
   var component = this.subject({
-    value: 'and make it better',
     content: Ember.A(['John', 'Paul', 'Ringo', 'Yoko'])
   });
 
   this.render();
 
-  this.$('input').focus();
+  //triggerEvent('input', 'focus');
+  click('input');
 
-  let options;
-  Ember.run(() => {
-    options = this.$('.auto-complete__option');
+  andThen(() => {
+    assert.ok(component.get('isOpen'), 'auto-complete list is open');
+
+    const options = this.$('.auto-complete__option');
+
+    this.$().trigger({ type: 'keydown', keyCode: 40 });
+
+    assert.equal(document.activeElement, options[0], 'John is focused');
+
+    this.$().trigger({ type: 'keydown', keyCode: 40 });
+    this.$().trigger({ type: 'keydown', keyCode: 40 });
+    this.$().trigger({ type: 'keydown', keyCode: 40 });
+    this.$().trigger({ type: 'keydown', keyCode: 40 });
+
+    assert.equal(document.activeElement, this.$('input')[0], 'auto-complete is focused');
   });
-
-  Ember.run(() => {
-    $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  });
-  assert.equal(document.activeElement, options[0], 'John is focused');
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, options[1], 'Paul is focused');
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, options[2], 'Ringo is focused');
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, options[1], 'Paul is focused');
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, options[0], 'John is focused');
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, this.$('input'), 'auto-complete is focused');
 });
 
 test('enter selects focused option', function(assert) {
@@ -124,7 +118,6 @@ test('enter selects focused option', function(assert) {
   var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
 
   var component = this.subject({
-    value: 'remember to let her into your heart',
     content: options
   });
 
