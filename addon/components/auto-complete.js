@@ -72,7 +72,7 @@ const AutoCompleteOption = Ember.ObjectProxy.extend({
    * @property _label
    * @private
    */
-  _formattedLabel: computed('label', '_autoComplete.regexValue', function() {
+  formattedLabel: computed('label', '_autoComplete.regexValue', function() {
     const label = this.get('_label');
     const highlightMatches = this.get('_autoComplete.highlightMatches');
     const regexValue = this.get('_autoComplete.regexValue');
@@ -90,7 +90,7 @@ const AutoCompleteOption = Ember.ObjectProxy.extend({
    * @property _label
    * @private
    */
-  _selected: computed('_label', '_autoComplete.value', function() {
+  selected: computed('_label', '_autoComplete.value', function() {
     return this.get('_autoComplete.value') === this.get('_label');
   })
 });
@@ -104,6 +104,8 @@ const AutoCompleteOption = Ember.ObjectProxy.extend({
 */
 export default Ember.Component.extend({
   layout: layout,
+
+  classes: ['auto-complete'],
 
   /**
    * Two-way bound property representing the current value of the search input.
@@ -159,6 +161,15 @@ export default Ember.Component.extend({
   highlightMatches: true,
 
   /**
+   * Determines whether or not the matching segment of option labels will be
+   * highlighted.
+   *
+   * @property highlightMatches
+   * @public
+   */
+  isOpen: false,
+
+  /**
    * Internal representation of the option list for the AutoComplete. Wraps
    * each option in an AutoCompleteOption proxf object which has various
    * computed properties for determining an objects value, label, etc.
@@ -169,7 +180,6 @@ export default Ember.Component.extend({
   options: map('content', function(option) {
     // Wrap standard JS objects in Ember objects
     if (Ember.typeOf(option) === 'object' ) {
-      console.log('test');
       option = Ember.Object.create(option);
     }
 
@@ -212,6 +222,14 @@ export default Ember.Component.extend({
     );
   }),
 
+  focusIn() {
+    this.open();
+  },
+
+  focusOut() {
+    this.close();
+  },
+
   /**
    * Sets the selection property when one of the options is selected. This can
    * happen either when the user clicks on an option, or when they type the full
@@ -220,8 +238,8 @@ export default Ember.Component.extend({
    * @property setSelection
    * @private
    */
-  setSelection: observer('options.@each._selected', function() {
-    const selection = this.get('options').findBy('_selected');
+  setSelection: observer('options.@each.selected', function() {
+    const selection = this.get('options').findBy('selected');
 
     if (selection) {
       this.set('selection', selection.get('_value'));
@@ -229,6 +247,134 @@ export default Ember.Component.extend({
       this.set('selection', null);
     }
   }),
+
+  closedKeydownMap: {
+    13/*enter*/: 'open',
+    40/*down*/:  'open',
+  },
+
+  openKeydownMap: {
+    27/*esc*/:   'closeAndFocus',
+    32/*space*/: 'selectFocusedOption',
+    13/*enter*/: 'selectFocusedOption',
+    40/*down*/:  'focusNext',
+    38/*up*/:    'focusPrevious',
+    8/*backspace*/: 'startBackspacing'
+  },
+
+  /**
+   * Handles keyboard interactions from all elements in the component.
+   *
+   * @method handleKeydown
+   * @private
+   */
+
+  keyDown(event) {
+    const map = this.get('isOpen') ? this.get('openKeydownMap') : this.get('closedKeydownMap');
+    const method = map[event.keyCode];
+
+    if (this[method]) {
+      return this[method](event);
+    }
+
+    const input = this.$('input')[0];
+    // After this we focus the input, but if they are using shift, we don't
+    // want to actually do it (they are probably shift+tabbing away). This is a
+    // blacklist of one, which makes me really nervous. We want to allow any
+    // valid input character, but that's a huge whitelist, or maybe use the
+    // run loop and wait for focus to settle on the new element and then decide
+    // what to do.
+    if (event.shiftKey) {
+      return;
+    }
+    if (document.activeElement !== input) {
+      input.focus();
+      // if its not backspace, then we want to select the input, since its
+      // keyDown, then on keyUp the contents will be replaced, but with
+      // backspace, we dont' want to do that.
+      if (event.keyCode !== 8/*backspace*/) {
+        input.select();
+      }
+    }
+  },
+
+  focusNext(event) {
+    event.preventDefault();
+
+    const input = this.$('input');
+    const focusedOption = this.$('.auto-complete__option:focus').first();
+    const firstOption = this.$('.auto-complete__option:first').first();
+    const lastOption = this.$('.auto-complete__option:last').first();
+
+    if (focusedOption[0] === lastOption[0]) {
+      input.focus();
+    } else if (focusedOption.length) {
+      focusedOption.next().focus();
+    } else {
+      firstOption.focus();
+    }
+  },
+
+  /**
+   * Focuses the previous option in the popover.
+   *
+   * @method focusPrevious
+   * @private
+   */
+
+  focusPrevious(event) {
+    event.preventDefault();
+
+    const input = this.$('input');
+    const focusedOption = this.$('.auto-complete__option:focus').first();
+    const firstOption = this.$('.auto-complete__option:first').first();
+    const lastOption = this.$('.auto-complete__option:last').first();
+
+    if (focusedOption[0] === firstOption[0]) {
+      input.focus();
+    } else if (focusedOption.length) {
+      focusedOption.prev().focus();
+    } else {
+      lastOption.focus();
+    }
+  },
+
+  /**
+   * Focuses an option given an index in the options cache.
+   *
+   * @method focusOptionAtIndex
+   * @private
+   */
+
+  selectFocusedOption() {
+    this.$('.auto-complete__option:focus').click();
+  },
+
+  /**
+   * Sets the option as the `focusedOption`
+   *
+   * @method focusOption
+   * @private
+   */
+
+  open() {
+    this.set('isOpen', true);
+  },
+
+  close() {
+    this.set('isOpen', false);
+  },
+
+  closeAndFocus() {
+    this.$('input').focus();
+    this.close();
+  },
+
+  click(event) {
+    if (this.$(event.target).is('input')) {
+      this.open();
+    }
+  },
 
   actions: {
     /**
@@ -242,8 +388,9 @@ export default Ember.Component.extend({
       const selection = option.get('_value');
       const value = option.get('_label');
 
-      this.set('selection', selection);
       this.set('value', value);
+
+      this.closeAndFocus();
 
       if (this.get('onSelect')) {
         this.sendAction('onSelect', this, selection);

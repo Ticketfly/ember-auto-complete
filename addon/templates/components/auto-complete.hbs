@@ -1,17 +1,17 @@
 {{input value=value placeholder=placeholder}}
 
-<ul class="ac-options" role="list-box" {{bind-attr aria-expanded=isOpen}}>
+<ul class="auto-complete__options" role="list-box" aria-expanded={{isOpen}} class="{{unless isOpen 'hide'}}">
   {{#each filteredOptions as |option index|}}
-    <li {{action "selectOption" option}} {{bind-attr id="option.id"}}>
+    <li {{action "selectOption" option}} id="auto-complete-option-{{option.id}}" class="auto-complete__option" role="option" tabindex="-1" selected={{option.selected}}>
       {{#if template}}
         {{yield option}}
       {{else}}
-      {{{option._formattedLabel}}}
+        {{{option.formattedLabel}}}
       {{/if}}
     </li>
   {{else}}
     <li>
-      <span class="ac-options-placeholder">{{optionsPlaceholder}}</span>
+      <span class="auto-complete__options-placeholder">{{optionsPlaceholder}}</span>
     </li>
   {{/each}}
 </ul>

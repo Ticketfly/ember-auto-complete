@@ -1,18 +1,14 @@
 <h2 id="title">Welcome to Ember.js</h2>
 
-{{#auto-complete
+{{auto-complete
   value=testValue
   selection=testSelection
-  content=testPromise
+  content=testOptions
   optionValuePath="value"
   optionLabelPath="label"
   onSelect="testSelectHandler"
   optionsPlaceholder="no results"
-  async=true
-  as |option|
 }}
-  {{option.label}}
-{{/auto-complete}}
 
 {{!-- {{auto-complete
   selection=testValue
