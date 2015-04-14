@@ -105,7 +105,6 @@ test('test navigation', function(assert) {
   andThen(() => {
     assert.ok(options.eq(0).is(':focus'), 'John is focused');
   });
-<<<<<<< HEAD
 
   andThen(() => {
     keyEvent('input', 'keydown', 40);
@@ -124,26 +123,6 @@ test('test navigation', function(assert) {
   });
 
   andThen(() => {
-=======
-
-  andThen(() => {
-    keyEvent('input', 'keydown', 40);
-    keyEvent('input', 'keydown', 40);
-    keyEvent('input', 'keydown', 40);
-    keyEvent('input', 'keydown', 40);
-  });
-
-  andThen(() => {
-    assert.ok($('input').is(':focus'), 'auto-complete is focused');
-  });
-
-  andThen(() => {
-    keyEvent('input', 'keydown', 38);
-    keyEvent('input', 'keydown', 38);
-  });
-
-  andThen(() => {
->>>>>>> adding aria functionality
     assert.ok(options.eq(2).is(':focus'), 'Ringo is focused');
   });
 });
