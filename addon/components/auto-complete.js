@@ -260,8 +260,12 @@ export default Ember.Component.extend({
    */
 
   selectFocusedOption(event) {
-    event.preventDefault();
-    this.$('.auto-complete__option:focus').click();
+    const focusedOption = this.$('.auto-complete__option:focus');
+
+    if (focusedOption.length) {
+      event.preventDefault();
+      focusedOption.click();      
+    }
   },
 
   /**
