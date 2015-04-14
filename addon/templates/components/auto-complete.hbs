@@ -1,14 +1,8 @@
 {{input value=value placeholder=placeholder}}
 
-<ul class="auto-complete__options" role="list-box" aria-expanded={{isOpen}} class="{{unless isOpen 'hide'}}">
+<ul class="auto-complete__options" role="list-box" class="{{unless isOpen 'hide'}}">
   {{#each filteredOptions as |option index|}}
-    <li {{action "selectOption" option}} id="auto-complete-option-{{option.id}}" class="auto-complete__option" role="option" tabindex="-1" selected={{option.selected}}>
-      {{#if template}}
-        {{yield option}}
-      {{else}}
-        {{{option.formattedLabel}}}
-      {{/if}}
-    </li>
+    {{auto-complete-option content=option}}
   {{else}}
     <li>
       <span class="auto-complete__options-placeholder">{{optionsPlaceholder}}</span>

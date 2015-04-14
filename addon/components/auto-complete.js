@@ -1,99 +1,10 @@
 import Ember from 'ember';
 import layout from '../templates/components/auto-complete';
+import AutoCompleteOptionProxy from '../proxies/auto-complete-option';
 
 const observer = Ember.observer;
 const computed = Ember.computed;
 const map = computed.map;
-
-/**
-  @module AutoCompleteOption
-
-  Provides a simple object proxy with some computed properties for use in the
-  AutoComplete component. The AutoComplete component requires access to it's
-  options in order to set its selection and filter out suggestions - Using
-  another component here would be better semantically would require some fugly
-  hacking to register the components together.
-
-  Possibly consider using CollectionView?
-
-  Notes:
-    - Computed properties are underscored so that they will not conflict with
-      potential objects being passed (`label` and `value` are fairly common
-      property names, the others are underscored for consistency)
-    - `_autoComplete` is a reference to the parent AutoComplete component. This
-      would typically be done with `parentView` if this were a component.
-      Aliasing could be used to clean up the code here, but some of the items
-      are arguably sole properties of the AutoComplete component (`_selected`)
-      whereas others have some right to be here (`optionLabelPath`,
-      `optionValuePath`).
-*/
-const AutoCompleteOption = Ember.ObjectProxy.extend({
-  /**
-   * The resolved label of the option. If the option is an object then the label
-   * is provided by the property at `optionLabelPath`. Otherwise the label is
-   * the option itself. Must resolve to a string.
-   *
-   * @property _label
-   * @private
-   */
-  _label: computed('content', '_autoComplete.optionLabelPath', function() {
-    const content = this.get('content');
-    const optionLabelPath = this.get('_autoComplete.optionLabelPath');
-
-    if (optionLabelPath && content && typeof content === 'object') {
-      return content.get(optionLabelPath);
-    } else {
-      return content;
-    }
-  }),
-
-  /**
-   * The resolved value of the option. If the option is an object then the value
-   * is provided by the property at `optionLabelPath`. Otherwise the value is
-   * the option itself.
-   *
-   * @property _label
-   * @private
-   */
-  _value: computed('content', '_autoComplete.optionValuePath', function() {
-    const content = this.get('content');
-    const optionValuePath = this.get('_autoComplete.optionValuePath');
-
-    if (optionValuePath && content && typeof content === 'object') {
-      return content.get(optionValuePath);
-    } else {
-      return content;
-    }
-  }),
-
-  /**
-   * Label formatted to highlight the matched parts of the option.
-   *
-   * @property _label
-   * @private
-   */
-  formattedLabel: computed('label', '_autoComplete.regexValue', function() {
-    const label = this.get('_label');
-    const highlightMatches = this.get('_autoComplete.highlightMatches');
-    const regexValue = this.get('_autoComplete.regexValue');
-
-    if (regexValue && highlightMatches) {
-      return label.replace(regexValue, "<b>$&</b>");
-    }
-
-    return label;
-  }),
-
-  /**
-   * Whether or not the option is selected.
-   *
-   * @property _label
-   * @private
-   */
-  selected: computed('_label', '_autoComplete.value', function() {
-    return this.get('_autoComplete.value') === this.get('_label');
-  })
-});
 
 /**
   @module AutoComplete
@@ -171,7 +82,7 @@ export default Ember.Component.extend({
 
   /**
    * Internal representation of the option list for the AutoComplete. Wraps
-   * each option in an AutoCompleteOption proxf object which has various
+   * each option in an AutoCompleteOptionProxy object which has various
    * computed properties for determining an objects value, label, etc.
    *
    * @property options
@@ -183,7 +94,7 @@ export default Ember.Component.extend({
       option = Ember.Object.create(option);
     }
 
-    return AutoCompleteOption.create({
+    return AutoCompleteOptionProxy.create({
       _autoComplete: this,
       content: option
     });
@@ -222,13 +133,7 @@ export default Ember.Component.extend({
     );
   }),
 
-  focusIn() {
-    this.open();
-  },
 
-  focusOut() {
-    this.close();
-  },
 
   /**
    * Sets the selection property when one of the options is selected. This can
@@ -238,8 +143,8 @@ export default Ember.Component.extend({
    * @property setSelection
    * @private
    */
-  setSelection: observer('options.@each.selected', function() {
-    const selection = this.get('options').findBy('selected');
+  setSelection: observer('options.@each._selected', function() {
+    const selection = this.get('options').findBy('_selected');
 
     if (selection) {
       this.set('selection', selection.get('_value'));
@@ -247,6 +152,14 @@ export default Ember.Component.extend({
       this.set('selection', null);
     }
   }),
+
+  focusIn() {
+    this.open();
+  },
+
+  focusOut() {
+    this.close();
+  },
 
   closedKeydownMap: {
     13/*enter*/: 'open',
@@ -346,7 +259,8 @@ export default Ember.Component.extend({
    * @private
    */
 
-  selectFocusedOption() {
+  selectFocusedOption(event) {
+    event.preventDefault();
     this.$('.auto-complete__option:focus').click();
   },
 
@@ -384,16 +298,13 @@ export default Ember.Component.extend({
      * @property selectOption
      * @private
      */
-    selectOption: function(option) {
-      const selection = option.get('_value');
-      const value = option.get('_label');
-
-      this.set('value', value);
+    selectOption(value, label) {
+      this.set('value', label);
 
       this.closeAndFocus();
 
       if (this.get('onSelect')) {
-        this.sendAction('onSelect', this, selection);
+        this.sendAction('onSelect', value);
       }
     }
   }

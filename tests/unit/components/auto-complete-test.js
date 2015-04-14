@@ -5,6 +5,8 @@ import Ember from 'ember';
 let App;
 
 moduleForComponent('auto-complete', 'AutoComplete', {
+  needs: ['component:auto-complete-option'],
+
   setup: function() {
     App = startApp();
   },
@@ -17,7 +19,7 @@ test('it renders', function(assert) {
   assert.expect(2);
 
   // Creates the component instance
-  var component = this.subject();
+  const component = this.subject();
   assert.equal(component._state, 'preRender');
 
   // Renders the component to the page
@@ -28,7 +30,7 @@ test('it renders', function(assert) {
 test('opens on focus', function(assert) {
   assert.expect(1);
 
-  var component = this.subject();
+  const component = this.subject();
 
   this.render();
 
@@ -43,7 +45,7 @@ test('opens on focus', function(assert) {
 test('closes on blur', function(assert) {
   assert.expect(2);
 
-  var component = this.subject();
+  const component = this.subject();
 
   this.render();
 
@@ -63,7 +65,7 @@ test('closes on blur', function(assert) {
 test('closes on escape', function(assert) {
   assert.expect(2);
 
-  var component = this.subject();
+  const component = this.subject();
 
   this.render();
 
@@ -73,9 +75,7 @@ test('closes on escape', function(assert) {
     assert.ok(component.get('isOpen'), 'auto-complete list is open');
   });
 
-  andThen(() => {
-    keyEvent('input', 'keyDown', 27);
-  });
+  keyEvent('input', 'keydown', 27);
 
   andThen(() => {
     assert.ok(!component.get('isOpen'), 'auto-complete list is not open');
@@ -83,32 +83,42 @@ test('closes on escape', function(assert) {
 });
 
 test('test navigation', function(assert) {
-  assert.expect(7);
+  assert.expect(3);
 
-  var component = this.subject({
+  const component = this.subject({
     content: Ember.A(['John', 'Paul', 'Ringo', 'Yoko'])
   });
 
   this.render();
 
-  //triggerEvent('input', 'focus');
-  click('input');
+
+  const options = this.$('.auto-complete__option');
+
+  triggerEvent('input', 'focus');
+  keyEvent('input', 'keydown', 40);
 
   andThen(() => {
-    assert.ok(component.get('isOpen'), 'auto-complete list is open');
+    assert.ok(options.eq(0).is(':focus'), 'John is focused');
+  });
 
-    const options = this.$('.auto-complete__option');
+  andThen(() => {
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+  });
 
-    this.$().trigger({ type: 'keydown', keyCode: 40 });
+  andThen(() => {
+    assert.ok($('input').is(':focus'), 'auto-complete is focused');
+  });
 
-    assert.equal(document.activeElement, options[0], 'John is focused');
+  andThen(() => {
+    keyEvent('input', 'keydown', 38);
+    keyEvent('input', 'keydown', 38);
+  });
 
-    this.$().trigger({ type: 'keydown', keyCode: 40 });
-    this.$().trigger({ type: 'keydown', keyCode: 40 });
-    this.$().trigger({ type: 'keydown', keyCode: 40 });
-    this.$().trigger({ type: 'keydown', keyCode: 40 });
-
-    assert.equal(document.activeElement, this.$('input')[0], 'auto-complete is focused');
+  andThen(() => {
+    assert.ok(options.eq(2).is(':focus'), 'Ringo is focused');
   });
 });
 
@@ -117,17 +127,19 @@ test('enter selects focused option', function(assert) {
 
   var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
 
-  var component = this.subject({
+  const component = this.subject({
     content: options
   });
 
   this.render();
 
-  this.$('input').focus();
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  $(document.activeElement).trigger('keypress', { keyCode: 13 });
+  triggerEvent('input', 'focus');
+  keyEvent('input', 'keydown', 40);
+  keyEvent('input', 'keydown', 13);
 
-  assert.equal(component.get('selection'), options[0], 'John is selected');
+  andThen(() => {
+    assert.equal(component.get('selection'), options[0], 'John is selected');
+  });
 });
 
 test('spacebar selects focused option', function(assert) {
@@ -135,18 +147,19 @@ test('spacebar selects focused option', function(assert) {
 
   var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
 
-  var component = this.subject({
-    value: 'and then you can start',
+  const component = this.subject({
     content: options
   });
 
   this.render();
 
-  this.$('input').focus();
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  $(document.activeElement).trigger('keypress', { keyCode: 13 });
+  triggerEvent('input', 'focus');
+  keyEvent('input', 'keydown', 40);
+  keyEvent('input', 'keydown', 32);
 
-  assert.equal(component.get('selection'), options[0], 'John is selected');
+  andThen(() => {
+    assert.equal(component.get('selection'), options[0], 'John is selected');
+  });
 });
 
 test('click selects option', function(assert) {
@@ -154,89 +167,61 @@ test('click selects option', function(assert) {
 
   var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
 
-  var component = this.subject({
-    value: 'to make it better',
+  const component = this.subject({
     content: options
   });
 
   this.render();
 
-  Ember.run(() => {
-    this.$('input').focus();
-    $(document.activeElement).trigger('keypress', { keyCode: 40 });
-    $(document.activeElement).click();
-  });
+  triggerEvent('input', 'focus');
+  click('.auto-complete__option:first-child');
 
-  assert.equal(component.get('selection'), options[0], 'John is selected');
+  andThen(() => {
+    assert.equal(component.get('selection'), options[0], 'John is selected');
+  });
 });
 
 test('typing in an open list returns focus to the input', function(assert) {
   assert.expect(1);
 
-  var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
-
-  var component = this.subject({
-    value: 'hey jude',
-    content: options
-  });
-
-  this.render();
-
-  this.$('input').focus();
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  $(document.activeElement).trigger('keypress', {keyCode: 85});
-
-  assert.equal(document.activeElement, this.$('input'), 'auto-complete is focussed');
-});
-
-test('arrows navigate the list from last hover', function(assert) {
-  assert.expect(1);
-
-  var component = this.subject({
-    value: 'don\'t be afraid',
+  const component = this.subject({
     content: Ember.A(['John', 'Paul', 'Ringo', 'Yoko'])
   });
 
   this.render();
 
-  this.$('input').focus();
+  triggerEvent('input', 'focus');
+  keyEvent('input', 'keydown', 40);
+  keyEvent('input', 'keydown', 85);
 
-  var options = this.$('.auto-complete__option');
-
-  options[2].hover();
-
-  $(document.activeElement).trigger('keypress', { keyCode: 40 });
-  assert.equal(document.activeElement, options[3], 'Yoko is focussed');
+  andThen(() => {
+    assert.ok(this.$('input').is(':focus'), 'auto-complete is focussed');
+  });
 });
 
-test('aria attributes', function(assert) {
-  assert.expect(1);
+test('arrows navigate the list from last hover', function(assert) {
+  assert.expect(2);
 
-  var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
-
-  var component = this.subject({
-    value: 'don\'t be afraid',
-    content: options,
-    selected: options[2]
+  const component = this.subject({
+    content: Ember.A(['John', 'Paul', 'Ringo', 'Yoko'])
   });
 
   this.render();
 
-  var input = this.$('input');
-  var list = this.$('.auto-complete__options');
+  const options = this.$('.auto-complete__option');
 
-  options = this.$('.auto-complete__option');
+  triggerEvent('input', 'focus');
+  triggerEvent('.auto-complete__option:first-child', 'mouseenter');
 
-  assert.equal(input.attr('role'), 'combobox', 'input role');
-  assert.equal(input.attr('aria-autocomplete'), 'both', 'aria-autocomplete');
-  assert.equal(input.attr('aria-owns'), list.attr('id'), 'aria-owns');
-  assert.equal(input.attr('aria-activedescendant'), options.eq(2).attr('id'), 'aria-activedescendant');
+  andThen(() => {
+    assert.ok(options.eq(0).is(':focus'), 'Paul is focussed');
+  });
 
-  assert.equal(options.eq(0).attr('role'), 'option', 'option role');
+  andThen(() => {
+    keyEvent('input', 'keydown', 40);
+  });
 
-  assert.equal(list.attr('role'), 'listbox', 'list role');
-  assert.equal(list.attr('aria-expanded'), 'false', 'aria-expanded');
-
-  input.focus().trigger('keypress', { keyCode: 40 });
-  assert.equal(list.attr('aria-expanded'), 'true', 'aria-expanded');
+  andThen(() => {
+    assert.ok(options.eq(1).is(':focus'), 'Paul is focussed');
+  });
 });
