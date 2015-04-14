@@ -16,7 +16,7 @@ const map = computed.map;
 export default Ember.Component.extend({
   layout: layout,
 
-  classes: ['auto-complete'],
+  classNames: ['auto-complete'],
 
   /**
    * Two-way bound property representing the current value of the search input.
@@ -264,7 +264,7 @@ export default Ember.Component.extend({
 
     if (focusedOption.length) {
       event.preventDefault();
-      focusedOption.click();      
+      focusedOption.click();
     }
   },
 
