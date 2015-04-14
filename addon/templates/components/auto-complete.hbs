@@ -1,6 +1,6 @@
 {{input value=value placeholder=placeholder}}
 
-<ul class="auto-complete__options" role="list-box" class="{{unless isOpen 'hide'}}">
+<ul role="list-box" class="auto-complete__options {{unless isOpen 'hide'}}">
   {{#each filteredOptions as |option index|}}
     {{auto-complete-option content=option}}
   {{else}}
