@@ -1,11 +1,3 @@
-{{input value=value placeholder=placeholder}}
+{{auto-complete-input value=value placeholder=placeholder}}
 
-<ul class="auto-complete__options" role="list-box" class="{{unless isOpen 'hide'}}">
-  {{#each filteredOptions as |option index|}}
-    {{auto-complete-option content=option}}
-  {{else}}
-    <li>
-      <span class="auto-complete__options-placeholder">{{optionsPlaceholder}}</span>
-    </li>
-  {{/each}}
-</ul>
+{{auto-complete-list}}

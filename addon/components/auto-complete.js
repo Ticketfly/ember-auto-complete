@@ -133,7 +133,9 @@ export default Ember.Component.extend({
     );
   }),
 
-
+  selectionId: computed(function() {
+    return this.$('li:selected').attr('id');
+  }),
 
   /**
    * Sets the selection property when one of the options is selected. This can
@@ -151,6 +153,7 @@ export default Ember.Component.extend({
     } else {
       this.set('selection', null);
     }
+
   }),
 
   focusIn() {

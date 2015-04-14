@@ -5,7 +5,12 @@ import Ember from 'ember';
 let App;
 
 moduleForComponent('auto-complete', 'AutoComplete', {
-  needs: ['component:auto-complete-option'],
+
+  needs: [
+    'component:auto-complete-option',
+    'component:auto-complete-input',
+    'component:auto-complete-list'
+  ],
 
   setup: function() {
     App = startApp();
@@ -100,6 +105,7 @@ test('test navigation', function(assert) {
   andThen(() => {
     assert.ok(options.eq(0).is(':focus'), 'John is focused');
   });
+<<<<<<< HEAD
 
   andThen(() => {
     keyEvent('input', 'keydown', 40);
@@ -118,6 +124,26 @@ test('test navigation', function(assert) {
   });
 
   andThen(() => {
+=======
+
+  andThen(() => {
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+    keyEvent('input', 'keydown', 40);
+  });
+
+  andThen(() => {
+    assert.ok($('input').is(':focus'), 'auto-complete is focused');
+  });
+
+  andThen(() => {
+    keyEvent('input', 'keydown', 38);
+    keyEvent('input', 'keydown', 38);
+  });
+
+  andThen(() => {
+>>>>>>> adding aria functionality
     assert.ok(options.eq(2).is(':focus'), 'Ringo is focused');
   });
 });
@@ -224,4 +250,36 @@ test('arrows navigate the list from last hover', function(assert) {
   andThen(() => {
     assert.ok(options.eq(1).is(':focus'), 'Paul is focussed');
   });
+});
+
+test('aria attributes', function(assert) {
+  assert.expect(8);
+
+  var options = Ember.A(['John', 'Paul', 'Ringo', 'Yoko']);
+
+  var component = this.subject({
+    value: 'don\'t be afraid',
+    content: options,
+    selected: options[2]
+  });
+
+  this.render();
+
+  var input = this.$('input');
+  var list = this.$('.auto-complete__options');
+
+  options = this.$('.auto-complete__option');
+
+  assert.equal(input.attr('role'), 'combobox', 'input role');
+  assert.equal(input.attr('aria-autocomplete'), 'both', 'aria-autocomplete');
+  assert.equal(input.attr('aria-owns'), list.attr('id'), 'aria-owns');
+  assert.equal(input.attr('aria-activedescendant'), options.eq(2).attr('id'), 'aria-activedescendant');
+
+  assert.equal(options.eq(0).attr('role'), 'option', 'option role');
+
+  assert.equal(list.attr('role'), 'listbox', 'list role');
+  assert.equal(list.attr('aria-expanded'), 'false', 'aria-expanded');
+
+  input.focus().trigger('keypress', { keyCode: 40 });
+  assert.equal(list.attr('aria-expanded'), 'true', 'aria-expanded');
 });
