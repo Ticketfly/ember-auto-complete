@@ -1,3 +1,20 @@
 <h2 id="title">Welcome to Ember.js</h2>
 
-{{outlet}}
+{{auto-complete
+  value=testValue
+  selection=testSelection
+  content=testStrings
+  onSelect="testSelectHandler"
+  optionsPlaceholder="no results"
+  async=true
+}}
+
+{{!-- {{auto-complete
+  selection=testValue
+  content=testStrings
+  onSelect="testSelectHandler"
+  optionsPlaceholder="no results"
+}} --}}
+
+<h4>selection: {{testSelection}}</h4>
+<h4>value: {{testValue}}</h4>
